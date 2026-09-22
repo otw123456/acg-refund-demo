@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="AI Commitment Gateway 退款授权演示" />
+  <title>AI Commitment Gateway · 退款授权演示</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%2310203c'/%3E%3Cpath d='M17 48V20a6 6 0 0 1 6-6h18a6 6 0 0 1 6 6v28' fill='none' stroke='%237da7ff' stroke-width='5'/%3E%3Cpath d='m25 32 5 5 10-11' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --ink: #10203c;
+      --muted: #62708a;
+      --line: #dbe4f2;
+      --soft-line: #e9eef7;
+      --canvas: #f4f7fb;
+      --paper: #ffffff;
+      --blue: #2f68ef;
+      --blue-2: #1747bd;
+      --blue-soft: #edf3ff;
+      --orange: #e78a18;
+      --orange-soft: #fff7e9;
+      --green: #168a54;
+      --green-soft: #eaf8f0;
+      --red: #d74646;
+      --shadow: 0 20px 60px rgba(20, 42, 82, .10);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--canvas); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 88% -10%, rgba(47,104,239,.10), transparent 34rem),
+        var(--canvas);
+      font-family: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      min-height: 100vh;
+    }
+    button { font: inherit; }
+    button:focus-visible, [tabindex]:focus-visible { outline: 3px solid rgba(47,104,239,.28); outline-offset: 3px; }
+    svg { display: block; }
+
+    .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+    .topbar {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 14px clamp(20px, 4vw, 64px);
+      border-bottom: 1px solid rgba(185, 199, 222, .72);
+      background: rgba(255,255,255,.84);
+      backdrop-filter: blur(18px);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+    .brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+    .mark {
+      width: 38px; height: 38px; border-radius: 11px; position: relative;
+      background: linear-gradient(150deg, #17356d, #07152c); box-shadow: 0 7px 18px rgba(22,50,103,.24);
+    }
+    .mark:before { content: ""; position: absolute; inset: 8px 9px 7px; border: 2px solid #8bb0ff; border-bottom: 0; border-radius: 8px 8px 2px 2px; }
+    .mark:after { content: ""; position: absolute; width: 8px; height: 4px; border-left: 2px solid white; border-bottom: 2px solid white; transform: rotate(-45deg); left: 15px; top: 17px; }
+    .brand-title { font-weight: 770; letter-spacing: -.025em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-title span { color: var(--blue); }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .live-pill { display: flex; gap: 8px; align-items: center; color: #44536d; font-size: .875rem; padding: 8px 12px; border-radius: 999px; background: #eef2f8; }
+    .live-pill i { width: 8px; height: 8px; background: #38ae74; border-radius: 50%; box-shadow: 0 0 0 4px rgba(56,174,116,.13); }
+    .icon-button {
+      width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); color: #42516d; background: white; cursor: pointer; display: grid; place-items: center;
+      transition: transform .16s ease, border-color .16s ease, color .16s ease;
+    }
+    .icon-button:hover { transform: translateY(-1px); border-color: #afc2e4; color: var(--blue); }
+
+    main { width: min(1480px, 100%); margin: 0 auto; padding: 30px clamp(18px, 3vw, 44px) 44px; }
+    .intro { display: flex; justify-content: space-between; gap: 30px; align-items: flex-end; margin-bottom: 22px; }
+    .eyebrow { color: var(--blue); font-weight: 760; letter-spacing: .12em; font-size: .76rem; text-transform: uppercase; margin-bottom: 10px; }
+    h1 { margin: 0; font-size: clamp(1.75rem, 3.2vw, 3rem); letter-spacing: -.045em; line-height: 1.06; }
+    .intro p { margin: 10px 0 0; color: var(--muted); font-size: 1rem; line-height: 1.65; }
+    .demo-control { display: flex; gap: 10px; flex-shrink: 0; }
+    .button {
+      border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 720; cursor: pointer;
+      display: inline-flex; gap: 8px; align-items: center; justify-content: center; transition: transform .16s ease, filter .16s ease, background .16s ease;
+    }
+    .button:hover { transform: translateY(-1px); filter: brightness(.98); }
+    .button.primary { background: var(--blue); color: white; box-shadow: 0 8px 22px rgba(47,104,239,.24); }
+    .button.ghost { color: #42516d; background: white; border: 1px solid var(--line); }
+    .button.approve { background: var(--blue); color: white; flex: 1; }
+    .button.reject { background: white; color: var(--red); border: 1px solid #f0caca; flex: 1; }
+    .button:disabled { opacity: .52; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .workspace { display: grid; grid-template-columns: minmax(290px, .88fr) minmax(420px, 1.35fr) minmax(300px, .92fr); gap: 16px; align-items: stretch; }
+    .panel { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 12px 35px rgba(30,57,103,.06); min-width: 0; overflow: hidden; }
+    .panel-head { min-height: 69px; display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--soft-line); }
+    .panel-title { font-size: .98rem; font-weight: 790; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
+    .panel-title .num { color: var(--blue); font-size: .72rem; width: 24px; height: 24px; border: 1px solid #bfd0f3; border-radius: 50%; display: grid; place-items: center; }
+    .subtle { color: #7d899e; font-size: .76rem; }
+
+    .conversation { display: flex; flex-direction: column; min-height: 636px; }
+    .customer-meta { display: flex; align-items: center; gap: 11px; }
+    .avatar { width: 34px; height: 34px; background: #e9eff9; color: #244a89; border-radius: 50%; display: grid; place-items: center; font-weight: 800; }
+    .customer-meta strong { display: block; font-size: .9rem; }
+    .customer-meta small { color: #8490a5; }
+    .chat { padding: 22px 20px; display: flex; flex-direction: column; gap: 18px; flex: 1; background: linear-gradient(#fff, #fbfcff); }
+    .message { max-width: 88%; line-height: 1.58; font-size: .93rem; position: relative; animation: rise .35s ease both; }
+    .message.customer { align-self: flex-start; background: #eef2f8; padding: 13px 15px; border-radius: 6px 17px 17px 17px; }
+    .message.ai { align-self: flex-end; color: #163261; background: var(--blue-soft); padding: 13px 15px; border-radius: 17px 6px 17px 17px; border: 1px solid #d6e2fb; }
+    .message time { display: block; font-size: .67rem; color: #8894a8; margin-top: 6px; }
+    .intent-card { margin-top: auto; border: 1px solid #d4e0f4; background: #f7faff; padding: 15px; border-radius: 16px; }
+    .intent-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .intent-label { display: flex; gap: 8px; align-items: center; color: var(--blue-2); font-weight: 760; font-size: .82rem; }
+    .intent-card dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: .82rem; }
+    .intent-card dt { color: #8290a7; }
+    .intent-card dd { margin: 0; font-weight: 680; text-align: right; }
+
+    .gateway { display: flex; flex-direction: column; min-height: 636px; }
+    .gateway-core { padding: 22px; flex: 1; display: flex; flex-direction: column; }
+    .decision-hero { border: 1px solid #f0d9b4; background: linear-gradient(145deg, #fffaf0 0%, #fff 75%); border-radius: 18px; padding: 18px; position: relative; overflow: hidden; }
+    .decision-hero:after { content: ""; width: 110px; height: 110px; border-radius: 50%; position: absolute; right: -42px; top: -45px; background: rgba(231,138,24,.10); }
+    .decision-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; position: relative; z-index: 1; }
+    .decision-code { display: flex; align-items: center; gap: 12px; }
+    .decision-icon { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: var(--orange); background: white; box-shadow: 0 8px 20px rgba(157,101,28,.13); }
+    .decision-code small { color: #8b6e3e; display: block; margin-bottom: 3px; }
+    .decision-code strong { font-size: 1.06rem; color: #9c5f0b; letter-spacing: .015em; }
+    .money { text-align: right; }
+    .money b { display: block; font-size: 1.8rem; letter-spacing: -.04em; }
+    .money span { font-size: .75rem; color: var(--muted); }
+    .reason { color: #6f5d3d; line-height: 1.55; margin: 14px 0 0; font-size: .86rem; }
+
+    .checks { margin: 19px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+    .check { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; min-height: 52px; padding: 7px 9px; border-radius: 12px; }
+    .check:hover { background: #f8faff; }
+    .check-icon { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--green-soft); color: var(--green); }
+    .check.warning .check-icon { color: var(--orange); background: var(--orange-soft); }
+    .check-text b { font-size: .86rem; display: block; }
+    .check-text span { color: #7d899d; font-size: .75rem; }
+    .check-value { font-size: .78rem; font-weight: 720; color: var(--green); }
+    .check.warning .check-value { color: var(--orange); }
+    .gate-path { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 8px; align-items: center; margin-top: 17px; padding: 14px 4px 0; border-top: 1px solid var(--soft-line); }
+    .gate-path span { font-size: .72rem; text-align: center; color: #6e7b91; }
+    .gate-path span.active { color: var(--blue); font-weight: 780; }
+    .path-dot { width: 7px; height: 7px; border-radius: 50%; background: #c7d2e4; }
+    .path-dot.active { background: var(--blue); box-shadow: 0 0 0 5px rgba(47,104,239,.10); }
+
+    .rulebox { margin-top: 17px; background: #f6f8fc; border: 1px solid #e2e8f2; border-radius: 16px; padding: 15px 16px; }
+    .rule-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .rule-head b { font-size: .84rem; }
+    .rule-version { color: #75839a; font-size: .72rem; background: white; border: 1px solid var(--line); padding: 4px 8px; border-radius: 999px; }
+    .threshold-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; }
+    .threshold-row label { color: #65738b; font-size: .79rem; }
+    .threshold-row strong { color: var(--ink); font-size: 1rem; }
+    .segmented { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #cfd9e8; background: white; border-radius: 11px; padding: 3px; }
+    .segment { border: 0; background: transparent; color: #66758e; padding: 7px 12px; font-size: .78rem; border-radius: 8px; cursor: pointer; }
+    .segment.active { color: white; background: var(--ink); box-shadow: 0 3px 9px rgba(16,32,60,.18); }
+
+    .approval { display: flex; flex-direction: column; min-height: 636px; position: relative; }
+    .phone-wrap { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+    .phone { border: 1px solid #ccd8ea; border-radius: 30px; background: #f8faff; padding: 10px; width: 100%; max-width: 322px; margin: 0 auto; box-shadow: inset 0 0 0 2px white, 0 18px 34px rgba(37,61,99,.11); position: relative; }
+    .phone-screen { min-height: 454px; border-radius: 22px; overflow: hidden; background: linear-gradient(160deg, #eaf1ff, #f7f9fd 46%, #eef2f8); padding: 11px; display: flex; flex-direction: column; }
+    .statusbar { display: flex; justify-content: space-between; font-size: .66rem; font-weight: 760; padding: 2px 8px 10px; color: #35435c; }
+    .island { width: 72px; height: 19px; background: #0e1626; border-radius: 20px; position: absolute; top: 15px; left: 50%; transform: translateX(-50%); }
+    .phone-title { padding: 16px 8px 11px; display: flex; justify-content: space-between; align-items: center; }
+    .phone-title strong { font-size: .82rem; }
+    .phone-title span { color: var(--blue); font-size: .7rem; }
+    .notification { background: rgba(255,255,255,.92); border: 1px solid rgba(190,204,227,.8); padding: 13px; border-radius: 17px; box-shadow: 0 13px 30px rgba(35,60,105,.13); animation: drop .45s cubic-bezier(.2,.8,.2,1) both; }
+    .notification.hidden { display: none; }
+    .notif-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .notif-app { display: flex; align-items: center; gap: 8px; font-size: .68rem; font-weight: 760; }
+    .app-mini { width: 24px; height: 24px; display: grid; place-items: center; color: white; background: var(--blue); border-radius: 7px; }
+    .notif-head time { color: #8793a7; font-size: .64rem; }
+    .notification b { font-size: .84rem; display: block; line-height: 1.45; }
+    .notification p { color: #66748b; font-size: .72rem; line-height: 1.45; margin: 6px 0 10px; }
+    .notif-amount { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #edf1f6; padding-top: 9px; }
+    .notif-amount span { color: #7f8ba0; font-size: .68rem; }
+    .notif-amount strong { font-size: 1rem; color: var(--ink); }
+    .phone-empty { margin: auto; text-align: center; color: #8a96a9; font-size: .72rem; line-height: 1.6; padding: 24px; }
+    .phone-empty svg { margin: 0 auto 10px; color: #9eacc1; }
+    .approval-actions { display: flex; gap: 9px; margin-top: 14px; }
+    .approval-meta { margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 7px; color: #7a879b; font-size: .72rem; }
+
+    .receipt { margin-top: 16px; border-top: 1px solid var(--soft-line); padding-top: 16px; display: none; animation: rise .38s ease both; }
+    .receipt.show { display: block; }
+    .receipt-head { display: flex; justify-content: space-between; gap: 14px; align-items: center; }
+    .receipt-head b { font-size: .86rem; }
+    .receipt-id { font: 650 .7rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: #66748b; }
+    .receipt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 11px; }
+    .receipt-grid div { background: #f6f8fc; border-radius: 10px; padding: 9px; }
+    .receipt-grid span { display: block; color: #8995a8; font-size: .64rem; margin-bottom: 4px; }
+    .receipt-grid strong { font-size: .72rem; }
+
+    .toast { position: fixed; right: 24px; bottom: 24px; display: flex; gap: 11px; align-items: center; max-width: 350px; color: white; background: #10203c; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: var(--shadow); padding: 13px 16px; transform: translateY(120px); opacity: 0; transition: .32s ease; z-index: 50; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast svg { color: #75a0ff; flex: none; }
+    .toast b { display: block; font-size: .82rem; }
+    .toast span { color: #c5cede; font-size: .72rem; }
+
+    .modal-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(10,22,43,.42); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 18px; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .modal-backdrop.show { opacity: 1; pointer-events: auto; }
+    .modal { width: min(440px, 100%); background: white; border-radius: 22px; box-shadow: 0 30px 90px rgba(5,18,42,.28); padding: 24px; transform: translateY(12px) scale(.98); transition: transform .2s ease; }
+    .modal-backdrop.show .modal { transform: none; }
+    .modal-icon { width: 48px; height: 48px; display: grid; place-items: center; color: var(--blue); background: var(--blue-soft); border-radius: 15px; }
+    .modal h2 { font-size: 1.3rem; margin: 17px 0 7px; }
+    .modal p { color: var(--muted); line-height: 1.6; margin: 0 0 17px; }
+    .modal dl { margin: 0 0 20px; padding: 14px; background: #f6f8fc; border-radius: 14px; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: .82rem; }
+    .modal dt { color: #7d899d; }
+    .modal dd { margin: 0; text-align: right; font-weight: 700; }
+    .modal-actions { display: flex; gap: 10px; }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+    @keyframes drop { from { opacity: 0; transform: translateY(-18px) scale(.98); } to { opacity: 1; transform: none; } }
+
+    @media (max-width: 1120px) {
+      .workspace { grid-template-columns: 1fr 1.25fr; }
+      .approval { grid-column: 1 / -1; min-height: auto; }
+      .approval .phone-wrap { display: grid; grid-template-columns: minmax(270px, 322px) 1fr; gap: 24px; align-items: center; }
+      .approval .phone { margin: 0; }
+      .receipt { border: 1px solid var(--line); padding: 18px; border-radius: 16px; }
+    }
+    @media (max-width: 760px) {
+      .topbar { min-height: 64px; padding: 12px 16px; }
+      .brand-title { font-size: .9rem; }
+      .live-pill { display: none; }
+      main { padding: 22px 14px 32px; }
+      .intro { align-items: flex-start; flex-direction: column; gap: 16px; }
+      .demo-control { width: 100%; }
+      .demo-control .button { flex: 1; }
+      .workspace { grid-template-columns: 1fr; }
+      .panel, .conversation, .gateway, .approval { min-height: auto; }
+      .chat { min-height: 455px; }
+      .approval { grid-column: auto; }
+      .approval .phone-wrap { display: flex; }
+      .phone { max-width: 360px; }
+      .receipt { width: 100%; border: 0; border-top: 1px solid var(--soft-line); border-radius: 0; padding: 16px 0 0; }
+      .receipt-grid { grid-template-columns: 1fr; }
+      .toast { left: 14px; right: 14px; bottom: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *:before, *:after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div class="brand-title">AI Commitment <span>Gateway</span></div>
+      </div>
+      <div class="top-actions">
+        <div class="live-pill"><i aria-hidden="true"></i>演示环境</div>
+        <button class="icon-button" id="helpButton" aria-label="查看演示说明" title="演示说明">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 1 1 3.4 2c-.8.5-1.2 1-1.2 2"/><path d="M12 17h.01"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div>
+          <div class="eyebrow">Refund authorization demo</div>
+          <h1>一笔 ¥688 退款，先确认再承诺</h1>
+          <p>AI 可以提出退款，但企业规则决定它能否直接执行。</p>
+        </div>
+        <div class="demo-control">
+          <button class="button ghost" id="resetButton">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            重置演示
+          </button>
+          <button class="button primary" id="notifyButton">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+            发送审批通知
+          </button>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="退款授权演示工作台">
+        <article class="panel conversation">
+          <div class="panel-head">
+            <div class="customer-meta">
+              <div class="avatar" aria-hidden="true">林</div>
+              <div><strong>林女士</strong><small>订单 #ACG-240918</small></div>
+            </div>
+            <span class="subtle">客服会话</span>
+          </div>
+          <div class="chat" aria-live="polite">
+            <div class="message customer">这台耳机左边没有声音，我不想换货了，能直接退 688 元吗？<time>14:32</time></div>
+            <div class="message ai" id="aiMessage">我正在核对订单和退款权限，请稍等。<time>AI 客服 · 14:32</time></div>
+            <div class="intent-card">
+              <div class="intent-top">
+                <div class="intent-label">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M17 7.5c0-1.9-2.2-3.5-5-3.5S7 5.6 7 7.5 9.2 11 12 11s5 1.6 5 3.5S14.8 18 12 18s-5-1.6-5-3.5"/></svg>
+                  AI 候选动作
+                </div>
+                <span class="subtle">等待授权</span>
+              </div>
+              <dl>
+                <dt>动作</dt><dd>全额退款</dd>
+                <dt>金额</dt><dd>¥688.00</dd>
+                <dt>退款至</dt><dd>原支付方式</dd>
+                <dt>原因</dt><dd>商品质量问题</dd>
+              </dl>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel gateway">
+          <div class="panel-head">
+            <div class="panel-title"><span class="num">2</span>Gateway 决策</div>
+            <span class="subtle" id="decisionTime">刚刚完成校验</span>
+          </div>
+          <div class="gateway-core">
+            <div class="decision-hero" id="decisionHero">
+              <div class="decision-line">
+                <div class="decision-code">
+                  <div class="decision-icon" id="decisionIcon">
+                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.6 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/></svg>
+                  </div>
+                  <div><small>授权结果</small><strong id="decisionCode">REQUIRE_APPROVAL</strong></div>
+                </div>
+                <div class="money"><b>¥688</b><span>退款申请</span></div>
+              </div>
+              <p class="reason" id="decisionReason">退款金额超过 AI 客服的 ¥500 自动处理上限，需主管确认后执行。</p>
+            </div>
+
+            <ul class="checks" aria-label="实时校验结果">
+              <li class="check">
+                <div class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 4 4L19 6"/></svg></div>
+                <div class="check-text"><b>订单状态</b><span>已签收 2 天，符合退款窗口</span></div>
+                <div class="check-value">通过</div>
+              </li>
+              <li class="check">
+                <div class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 4 4L19 6"/></svg></div>
+                <div class="check-text"><b>客户与支付</b><span>身份已验证，支持原路退回</span></div>
+                <div class="check-value">通过</div>
+              </li>
+              <li class="check">
+                <div class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 4 4L19 6"/></svg></div>
+                <div class="check-text"><b>风险检查</b><span>近 90 天无异常退款记录</span></div>
+                <div class="check-value">低风险</div>
+              </li>
+              <li class="check warning" id="authorityCheck">
+                <div class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 8v4M12 16h.01"/></svg></div>
+                <div class="check-text"><b>AI 退款权限</b><span id="authorityText">自动处理上限 ¥500</span></div>
+                <div class="check-value" id="authorityValue">超出 ¥188</div>
+              </li>
+            </ul>
+
+            <div class="gate-path" aria-label="动作处理路径">
+              <span>候选动作</span><i class="path-dot active"></i><span class="active" id="pathMiddle">等待审批</span><i class="path-dot" id="pathEndDot"></i><span id="pathEnd">执行退款</span>
+            </div>
+
+            <div class="rulebox">
+              <div class="rule-head"><b>规则回放</b><span class="rule-version" id="ruleVersion">Policy v12.4</span></div>
+              <div class="threshold-row">
+                <label>AI 自动退款上限<br><strong id="thresholdLabel">¥500</strong></label>
+                <div class="segmented" aria-label="选择规则阈值">
+                  <button class="segment active" data-threshold="500">¥500</button>
+                  <button class="segment" data-threshold="800">¥800</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel approval">
+          <div class="panel-head">
+            <div class="panel-title"><span class="num">3</span>主管通知</div>
+            <span class="subtle" id="notificationStatus">尚未发送</span>
+          </div>
+          <div class="phone-wrap">
+            <div class="phone" aria-label="手机通知预览">
+              <div class="island" aria-hidden="true"></div>
+              <div class="phone-screen">
+                <div class="statusbar"><span>14:32</span><span>5G&nbsp;&nbsp;91%</span></div>
+                <div class="phone-title"><strong>通知中心</strong><span>清除</span></div>
+                <div class="notification hidden" id="notification">
+                  <div class="notif-head">
+                    <div class="notif-app"><span class="app-mini"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 4 4L19 6"/></svg></span>ACG 审批</div>
+                    <time>现在</time>
+                  </div>
+                  <b>退款申请等待你的确认</b>
+                  <p>林女士 · 订单 #ACG-240918<br>商品质量问题，全额退款</p>
+                  <div class="notif-amount"><span>申请金额</span><strong>¥688.00</strong></div>
+                </div>
+                <div class="phone-empty" id="phoneEmpty">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+                  点击“发送审批通知”<br>模拟主管收到退款请求
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="approval-actions">
+                <button class="button reject" id="rejectButton" disabled>拒绝</button>
+                <button class="button approve" id="approveButton" disabled>批准退款</button>
+              </div>
+              <div class="approval-meta">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+                每次操作都会生成可回放的决策凭证
+              </div>
+
+              <div class="receipt" id="receipt">
+                <div class="receipt-head"><b>Decision Receipt</b><span class="receipt-id" id="receiptId">ACG-RCP-0922-001</span></div>
+                <div class="receipt-grid">
+                  <div><span>最终决策</span><strong id="receiptDecision">APPROVED</strong></div>
+                  <div><span>执行状态</span><strong id="receiptStatus">已退款</strong></div>
+                  <div><span>审批主体</span><strong id="receiptActor">主管 · 王敏</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+    <div><b id="toastTitle">审批通知已发送</b><span id="toastText">主管现在可以批准或拒绝这笔退款。</span></div>
+  </div>
+
+  <div class="modal-backdrop" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal">
+      <div class="modal-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M17 7.5c0-1.9-2.2-3.5-5-3.5S7 5.6 7 7.5 9.2 11 12 11s5 1.6 5 3.5S14.8 18 12 18s-5-1.6-5-3.5"/></svg></div>
+      <h2 id="helpTitle">这页演示什么？</h2>
+      <p>AI 提出退款动作后，Gateway 会先核对订单、风险和权限，再决定直接放行、请求审批或拒绝。</p>
+      <dl><dt>本次金额</dt><dd>¥688</dd><dt>默认权限</dt><dd>¥500</dd><dt>默认结果</dt><dd>需要主管审批</dd></dl>
+      <button class="button primary" id="closeHelp" style="width:100%">开始演示</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const state = { threshold: 500, notified: false, finished: false };
+      const $ = (id) => document.getElementById(id);
+      const ui = {
+        aiMessage: $('aiMessage'), notify: $('notifyButton'), reset: $('resetButton'), notification: $('notification'), phoneEmpty: $('phoneEmpty'),
+        status: $('notificationStatus'), approve: $('approveButton'), reject: $('rejectButton'), receipt: $('receipt'), decisionCode: $('decisionCode'),
+        decisionReason: $('decisionReason'), authority: $('authorityCheck'), authorityText: $('authorityText'), authorityValue: $('authorityValue'),
+        thresholdLabel: $('thresholdLabel'), ruleVersion: $('ruleVersion'), decisionHero: $('decisionHero'), decisionIcon: $('decisionIcon'),
+        pathMiddle: $('pathMiddle'), pathEnd: $('pathEnd'), pathEndDot: $('pathEndDot'), receiptDecision: $('receiptDecision'),
+        receiptStatus: $('receiptStatus'), receiptActor: $('receiptActor'), receiptId: $('receiptId'), toast: $('toast'), toastTitle: $('toastTitle'), toastText: $('toastText')
+      };
+
+      let toastTimer;
+      const showToast = (title, text) => {
+        ui.toastTitle.textContent = title;
+        ui.toastText.textContent = text;
+        ui.toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 3200);
+      };
+
+      const setIcon = (kind) => {
+        const icons = {
+          warning: '<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.6 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/></svg>',
+          check: '<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 4 4L19 6"/></svg>',
+          deny: '<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m7 7 10 10M17 7 7 17"/></svg>'
+        };
+        ui.decisionIcon.innerHTML = icons[kind];
+      };
+
+      const styleDecision = (kind) => {
+        const map = {
+          warning: ['#f0d9b4', 'linear-gradient(145deg,#fffaf0 0%,#fff 75%)', '#e78a18', '#fff7e9'],
+          check: ['#bfe4cf', 'linear-gradient(145deg,#effbf4 0%,#fff 75%)', '#168a54', '#eaf8f0'],
+          deny: ['#efcaca', 'linear-gradient(145deg,#fff3f3 0%,#fff 75%)', '#d74646', '#fff0f0']
+        }[kind];
+        ui.decisionHero.style.borderColor = map[0]; ui.decisionHero.style.background = map[1];
+        ui.decisionIcon.style.color = map[2]; ui.decisionIcon.style.background = map[3];
+        ui.decisionCode.style.color = map[2];
+        setIcon(kind);
+      };
+
+      const sendNotification = () => {
+        if (state.threshold === 800) {
+          showToast('无需审批', '当前规则允许 AI 直接执行 ¥688 退款。');
+          return { status: 'not_required', threshold: 800 };
+        }
+        state.notified = true;
+        ui.notification.classList.remove('hidden'); ui.phoneEmpty.style.display = 'none';
+        ui.status.textContent = '已送达 · 现在'; ui.approve.disabled = false; ui.reject.disabled = false;
+        ui.notify.disabled = true; ui.notify.lastChild.textContent = ' 已发送';
+        showToast('审批通知已发送', '主管现在可以批准或拒绝这笔退款。');
+        return { status: 'sent', amount: 688, orderId: 'ACG-240918' };
+      };
+
+      const finish = (approved, actor = '主管 · 王敏') => {
+        if (state.finished) return { status: 'already_finished' };
+        if (state.threshold === 500 && !state.notified) throw new Error('请先发送审批通知');
+        state.finished = true;
+        ui.approve.disabled = true; ui.reject.disabled = true; ui.receipt.classList.add('show'); ui.pathEndDot.classList.add('active');
+        if (approved) {
+          ui.decisionCode.textContent = 'APPROVED'; ui.decisionReason.textContent = state.threshold === 800 ? '当前规则允许 AI 在 ¥800 内自动处理，退款已直接放行。' : '主管已确认这笔退款，Gateway 已允许企业系统执行。';
+          ui.aiMessage.innerHTML = '您的退款已确认，将原路退回支付账户，预计 1–3 个工作日到账。<time>AI 客服 · 刚刚</time>';
+          ui.pathMiddle.textContent = state.threshold === 800 ? '自动放行' : '审批通过'; ui.pathEnd.textContent = '退款完成';
+          ui.receiptDecision.textContent = state.threshold === 800 ? 'ALLOW' : 'APPROVED'; ui.receiptStatus.textContent = '已退款'; ui.receiptActor.textContent = actor;
+          styleDecision('check'); showToast('退款已执行', '¥688 已原路退回，并生成 Decision Receipt。');
+          return { decision: state.threshold === 800 ? 'ALLOW' : 'APPROVED', refundStatus: 'completed', receiptId: ui.receiptId.textContent };
+        }
+        ui.decisionCode.textContent = 'DENIED'; ui.decisionReason.textContent = '主管拒绝了退款申请，AI 将改为说明原因并转人工继续处理。';
+        ui.aiMessage.innerHTML = '这笔退款暂时无法直接办理，我已为您转接人工客服继续核实。<time>AI 客服 · 刚刚</time>';
+        ui.pathMiddle.textContent = '审批拒绝'; ui.pathEnd.textContent = '转人工';
+        ui.receiptDecision.textContent = 'DENIED'; ui.receiptStatus.textContent = '未退款'; ui.receiptActor.textContent = actor;
+        styleDecision('deny'); showToast('申请已拒绝', 'AI 已停止退款承诺，并将会话转给人工客服。');
+        return { decision: 'DENIED', refundStatus: 'not_executed', receiptId: ui.receiptId.textContent };
+      };
+
+      const reset = () => {
+        state.threshold = 500; state.notified = false; state.finished = false;
+        document.querySelectorAll('.segment').forEach((b) => b.classList.toggle('active', b.dataset.threshold === '500'));
+        ui.notification.classList.add('hidden'); ui.phoneEmpty.style.display = ''; ui.status.textContent = '尚未发送';
+        ui.approve.disabled = true; ui.reject.disabled = true; ui.notify.disabled = false; ui.notify.lastChild.textContent = ' 发送审批通知';
+        ui.receipt.classList.remove('show'); ui.decisionCode.textContent = 'REQUIRE_APPROVAL';
+        ui.decisionReason.textContent = '退款金额超过 AI 客服的 ¥500 自动处理上限，需主管确认后执行。';
+        ui.authority.classList.add('warning'); ui.authorityText.textContent = '自动处理上限 ¥500'; ui.authorityValue.textContent = '超出 ¥188';
+        ui.thresholdLabel.textContent = '¥500'; ui.ruleVersion.textContent = 'Policy v12.4';
+        ui.pathMiddle.textContent = '等待审批'; ui.pathEnd.textContent = '执行退款'; ui.pathEndDot.classList.remove('active');
+        ui.aiMessage.innerHTML = '我正在核对订单和退款权限，请稍等。<time>AI 客服 · 14:32</time>';
+        styleDecision('warning');
+        return { status: 'reset', threshold: 500 };
+      };
+
+      const setThreshold = (value) => {
+        reset(); state.threshold = Number(value);
+        document.querySelectorAll('.segment').forEach((b) => b.classList.toggle('active', Number(b.dataset.threshold) === state.threshold));
+        if (state.threshold === 800) {
+          ui.thresholdLabel.textContent = '¥800'; ui.ruleVersion.textContent = 'Policy v12.5';
+          ui.authority.classList.remove('warning'); ui.authorityText.textContent = '自动处理上限 ¥800'; ui.authorityValue.textContent = '权限内';
+          ui.decisionCode.textContent = 'ALLOW'; ui.decisionReason.textContent = '同一笔退款在新规则下未超过 ¥800 上限，Gateway 可直接放行。';
+          ui.pathMiddle.textContent = '自动放行'; ui.notify.disabled = true; styleDecision('check');
+          setTimeout(() => finish(true, 'Gateway · 自动授权'), 520);
+        }
+        return { threshold: state.threshold, decision: state.threshold >= 688 ? 'ALLOW' : 'REQUIRE_APPROVAL' };
+      };
+
+      ui.notify.addEventListener('click', sendNotification);
+      ui.approve.addEventListener('click', () => finish(true));
+      ui.reject.addEventListener('click', () => finish(false));
+      ui.reset.addEventListener('click', () => { reset(); showToast('演示已重置', '已恢复到 ¥500 自动处理上限。'); });
+      document.querySelectorAll('.segment').forEach((button) => button.addEventListener('click', () => setThreshold(button.dataset.threshold)));
+
+      const modal = $('helpModal'); const openModal = () => modal.classList.add('show'); const closeModal = () => modal.classList.remove('show');
+      $('helpButton').addEventListener('click', openModal); $('closeHelp').addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+      const context = document.modelContext;
+      if (context?.registerTool) {
+        const register = (tool) => Promise.resolve(context.registerTool(tool)).catch(() => {});
+        register({ name: 'send_refund_approval_notification', title: '发送退款审批通知', description: '向主管发送当前 ¥688 退款申请的审批通知，并更新页面中的手机通知。', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute: sendNotification });
+        register({ name: 'decide_refund_request', title: '处理退款申请', description: '批准或拒绝当前退款申请，并更新 AI 回复、执行状态和决策凭证。', inputSchema: { type: 'object', properties: { decision: { type: 'string', enum: ['approve','reject'] }, actor: { type: 'string', maxLength: 40 } }, required: ['decision'], additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute: (input) => { if (!input || !['approve','reject'].includes(input.decision)) throw new Error('decision 必须是 approve 或 reject'); return finish(input.decision === 'approve', input.actor || '主管 · 王敏'); } });
+        register({ name: 'replay_refund_policy', title: '回放退款规则', description: '将 AI 自动退款上限切换为 ¥500 或 ¥800，回放同一退款请求的不同授权结果。', inputSchema: { type: 'object', properties: { threshold: { type: 'number', enum: [500,800] } }, required: ['threshold'], additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute: (input) => { if (!input || ![500,800].includes(input.threshold)) throw new Error('threshold 必须是 500 或 800'); return setThreshold(input.threshold); } });
+      }
+    })();
+  </script>
+</body>
+</html>
+
